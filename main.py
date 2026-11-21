@@ -60,7 +60,11 @@ def image_info(path):
     with open(path, "rb") as fh:
         head = fh.read(33)
         if head.startswith(PNG_SIGNATURE):
-            if len(head) < 33 or head[12:16] != b"IHDR":
+            # The IHDR chunk's data is always exactly 13 bytes, so the
+            # length field in front of the chunk type must say so; a
+            # different value means the header is not a real IHDR.
+            (ihdr_size,) = struct.unpack(">I", head[8:12])
+            if len(head) < 33 or ihdr_size != 13 or head[12:16] != b"IHDR":
                 raise ValueError("entry.png has a truncated PNG header")
             width, height = struct.unpack(">II", head[16:24])
             (stored_crc,) = struct.unpack(">I", head[29:33])
